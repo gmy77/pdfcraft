@@ -1,11 +1,45 @@
-<p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
-</p>
+# ⚠️ PdfCraft + Traduttore — fork non ufficiale / unofficial fork
+
+> [!IMPORTANT]
+> **ITALIANO — PdfCraft, per il momento, non ha un traduttore. Per il momento la soluzione è questa.**
+>
+> Questo è un fork **non ufficiale** di [storytold/pdfcraft](https://github.com/storytold/pdfcraft) che aggiunge il pulsante **Traduci** alla barra che compare quando selezioni del testo: selezioni anche solo mezza pagina, premi *Traduci* e la traduzione appare in una finestrella, con scelta della lingua, lingua d'origine rilevata e copia.
+>
+> Come si usa al posto dell'originale:
+>
+> 1. **Compila questo ramo** (`feat/traduttore-0.18`, basato su PdfCraft 0.18.1): vedi [Compilare](#compilare-il-fork--building-the-fork) qui sotto.
+> 2. **Gli aggiornamenti automatici all'avvio sono tolti**: una versione ufficiale sostituirebbe questa e il pulsante *Traduci* sparirebbe. Da *Aiuto ▸ Controlla aggiornamenti* si può ancora controllare a mano.
+> 3. **Impostalo come lettore PDF predefinito** al posto dell'originale (Windows: clic destro su un PDF ▸ *Apri con* ▸ *Scegli un'altra app* ▸ il `pdfcraft.exe` compilato ▸ *Sempre*).
+>
+> Vale **fintanto che il traduttore non entra nel repository originale**: la proposta è aperta in [storytold/pdfcraft#4457](https://github.com/storytold/pdfcraft/pull/4457), dove abbiamo offerto anche questo codice. Quando arriva lì, torna alla versione ufficiale e riattiva gli aggiornamenti.
+>
+> **Privacy:** il testo che scegli di tradurre viene inviato a Google Translate (`translate.googleapis.com`). Nient'altro lascia il computer, e solo quando premi *Traduci*. Se il PDF vieta la copia del testo, il pulsante è disattivato.
+
+> [!IMPORTANT]
+> **ENGLISH — PdfCraft has no translator yet. For now, this is the workaround.**
+>
+> This is an **unofficial** fork of [storytold/pdfcraft](https://github.com/storytold/pdfcraft) that adds a **Translate** button to the text-selection bar: select some text (half a page is fine), press *Translate*, and the translation opens in a small window with a target-language picker, the detected source language and a copy button.
+>
+> To use it in place of the original: build this branch (`feat/traduttore-0.18`, based on PdfCraft 0.18.1), and set the built `pdfcraft.exe` as your default PDF reader. **The update check at start is removed**, because an official release would replace this build and its Translate button; *Help ▸ Check for updates* still works on request.
+>
+> This holds **until the translator lands in the original repository**: see [storytold/pdfcraft#4457](https://github.com/storytold/pdfcraft/pull/4457), where this code was offered too. Once it lands there, go back to the official build.
+>
+> **Privacy:** the text you choose to translate is sent to Google Translate (`translate.googleapis.com`), only when you press *Translate*. Nothing else leaves your computer. The button is disabled when a PDF forbids copying its text.
+
+### Compilare il fork / Building the fork
+
+```
+git clone -b feat/traduttore-0.18 https://github.com/gmy77/pdfcraft
+git clone https://github.com/storytold/craft-i18n
+cd craft-i18n && git checkout <the commit in pdfcraft/craft-i18n.rev> && cd ../pdfcraft
+CRAFT_I18N_DIR=../craft-i18n cargo build -p pdfcraft --release
+```
+
+Senza `CRAFT_I18N_DIR` l'interfaccia è solo in inglese. Le scritte italiane del traduttore non sono ancora in craft-i18n: senza di esse la finestra *Traduzione* resta in inglese, il resto dell'app no. Il codice del traduttore è in [`crates/ui-egui/src/translate.rs`](crates/ui-egui/src/translate.rs).
+
+Tutto ciò che segue è il README originale di PdfCraft. / Everything below is PdfCraft's original README.
+
+---
 
 
 <p align="center">

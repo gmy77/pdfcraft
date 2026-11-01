@@ -473,7 +473,9 @@ fn app_creator<'a>(
             }
             app.motion.source = Some(motion::source());
         }
-        app.set_startup_update_check(true);
+        // Fork: no check at start. An official release would replace this build and its Translate
+        // button; Help ▸ Check for updates still asks on request.
+        app.set_startup_update_check(false);
         app.printer_source = Some(pdfcraft_ui_egui::system_printers());
         app.two_sided_source = Some(pdfcraft_ui_egui::system_two_sided());
         app.os_key_store_ids = cfg!(any(target_os = "macos", target_os = "windows"));

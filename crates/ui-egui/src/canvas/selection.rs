@@ -175,10 +175,11 @@ enum SelectionAction {
     Markup(comments::CommentTool),
     Replace,
     Copy,
+    Translate,
 }
 
 /// The selection bar's width before it has been laid out once (English labels).
-const SELECTION_BAR_GUESS: f32 = 520.0;
+const SELECTION_BAR_GUESS: f32 = 600.0;
 
 /// Actions on an existing text selection, next to the selected words.
 pub(super) fn selection_actions(
@@ -235,6 +236,10 @@ pub(super) fn selection_actions(
                 if ui.add_enabled(can_copy, egui::Button::new(tl!("Copy"))).clicked() {
                     chosen = Some(SelectionAction::Copy);
                 }
+                // The text leaves the app, so a document that forbids copying forbids this too.
+                if ui.add_enabled(can_copy, egui::Button::new(tl!("Translate"))).clicked() {
+                    chosen = Some(SelectionAction::Translate);
+                }
             });
         });
     });
@@ -243,6 +248,12 @@ pub(super) fn selection_actions(
         // Copying closes the bar but keeps the words selected, for ⌘C or a second action.
         view.actions_dismissed = Some(selection);
         return true;
+    }
+    if let SelectionAction::Translate = action {
+        // Like Copy: the bar closes and the words stay selected.
+        view.actions_dismissed = Some(selection);
+        view.translator.start(ui.ctx(), &selected);
+        return false;
     }
     let Some((page, quads)) = view.selection_quads(info) else { return false };
     let last = quads.last().copied().unwrap_or_default();
@@ -272,8 +283,8 @@ pub(super) fn selection_actions(
                 author: prefs.author.clone(),
             }));
         }
-        // Copy is dispatched through the app after the view borrow ends.
-        SelectionAction::Copy => {}
+        // Copy is dispatched through the app after the view borrow ends; Translate returned above.
+        SelectionAction::Copy | SelectionAction::Translate => {}
     }
     false
 }

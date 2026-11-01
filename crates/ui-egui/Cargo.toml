@@ -55,6 +55,9 @@ skrifa = "0.44"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 craft-update = { workspace = true }
+# Fork-only: the selection bar's Translate button posts the text to Google Translate (translate.rs).
+# Already in the tree through craft-update; `rustls` adds only the webpki-roots certificate list.
+ureq = { version = "3.5", default-features = false, features = ["rustls"] }
 # Control-channel tokens.
 getrandom = "0.4"
 # Create ▸ Clipboard (images; already in the tree through egui-winit).
