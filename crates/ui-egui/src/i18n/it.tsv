@@ -2789,3 +2789,16 @@ certificate	SHA-256 digest	Impronta SHA-256
 	Rotate the selected pages clockwise	Ruota le pagine selezionate in senso orario
 	Extract the selected pages…	Estrai le pagine selezionate…
 	Delete the selected pages	Elimina le pagine selezionate
+	Translation	Traduzione
+	Translate into	Traduci in
+	Translate again	Traduci di nuovo
+	The selection was long: only its beginning was translated.	La selezione era lunga: è stato tradotto solo l'inizio.
+	Select some text and choose Translate.	Seleziona del testo e scegli Traduci.
+	Translating…	Traduzione in corso…
+	Detected language:	Lingua rilevata:
+	Copy translation	Copia traduzione
+	Original text	Testo originale
+	The translation stopped unexpectedly.	La traduzione si è interrotta inaspettatamente.
+	The translation service sent an unreadable reply.	Il servizio di traduzione ha inviato una risposta illeggibile.
+	Could not reach the translation service:	Impossibile raggiungere il servizio di traduzione:
+	Translation is not available in the web version.	La traduzione non è disponibile nella versione web.

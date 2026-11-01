@@ -529,6 +529,8 @@ pub struct DocView {
     /// The selection whose action bar was closed by its Copy button: the bar stays hidden
     /// until the selection changes, as it does once a markup button consumes the selection.
     actions_dismissed: Option<Selection>,
+    /// The translation window opened by the selection bar's Translate button.
+    translator: crate::translate::Translator,
     /// The drag in progress started a text selection: the wheel scrolls the page during it
     /// (#721), which egui's scroll area refuses while anything is dragged.
     selection_drag: bool,
@@ -869,6 +871,7 @@ impl DocView {
             selection: None,
             all_text: false,
             actions_dismissed: None,
+            translator: Default::default(),
             selection_drag: false,
             clicks: 0,
             last_press_time: 0.0,
@@ -4301,6 +4304,7 @@ pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
     if unobstructed && matches!(tool, QuickTool::Select | QuickTool::ColumnSelect) {
         copy_selected |= selection_actions(ui, avail, view, info, prefs, allowed && !comments_hidden, can_copy);
     }
+    crate::translate::show(ui.ctx(), egui::Id::unique(("translate", view.id.0)), &mut view.translator);
 
     // Collect all main-page demand, including cached surfaces, for byte admission later.
     // Pan-settle debounce for tiled pages: each tile costs a full page interpret, so holding
@@ -4692,6 +4696,7 @@ enum SelectionAction {
     Markup(comments::CommentTool),
     Replace,
     Copy,
+    Translate,
 }
 
 /// Actions on an existing text selection, next to the selected words.
@@ -4725,7 +4730,7 @@ fn selection_actions(
     if !viewport.intersects(rect) {
         return false;
     }
-    let x = rect.left().clamp(viewport.left() + 8.0, (viewport.right() - 520.0).max(viewport.left() + 8.0));
+    let x = rect.left().clamp(viewport.left() + 8.0, (viewport.right() - 600.0).max(viewport.left() + 8.0));
     let y = if rect.bottom() + 48.0 < viewport.bottom() { rect.bottom() + 6.0 } else { (rect.top() - 44.0).max(viewport.top() + 6.0) };
     let mut chosen = None;
     egui::Area::new(egui::Id::unique(("text-selection-actions", view.id.0))).order(egui::Order::Foreground).fixed_pos(pos2(x, y)).show(
@@ -4747,6 +4752,10 @@ fn selection_actions(
                     if ui.add_enabled(can_copy, egui::Button::new(tl!("Copy"))).clicked() {
                         chosen = Some(SelectionAction::Copy);
                     }
+                    // The text leaves the app, so a document that forbids copying forbids this too.
+                    if ui.add_enabled(can_copy, egui::Button::new(tl!("Translate"))).clicked() {
+                        chosen = Some(SelectionAction::Translate);
+                    }
                 });
             });
         },
@@ -4756,6 +4765,12 @@ fn selection_actions(
         // Copying closes the bar but keeps the words selected, for ⌘C or a second action.
         view.actions_dismissed = Some(selection);
         return true;
+    }
+    if let SelectionAction::Translate = action {
+        // Like Copy: the bar closes and the words stay selected.
+        view.actions_dismissed = Some(selection);
+        view.translator.start(ui.ctx(), &selected);
+        return false;
     }
     let Some((page, quads)) = view.selection_quads(info) else { return false };
     let last = quads.last().copied().unwrap_or_default();
@@ -4785,8 +4800,8 @@ fn selection_actions(
                 author: prefs.author.clone(),
             }));
         }
-        // Copy is dispatched through the app after the view borrow ends.
-        SelectionAction::Copy => {}
+        // Copy is dispatched through the app after the view borrow ends; Translate returned above.
+        SelectionAction::Copy | SelectionAction::Translate => {}
     }
     false
 }

@@ -42,6 +42,7 @@ mod chrome;
 mod combine_grid;
 mod image_pick;
 mod tags_ui;
+mod translate;
 pub use combine_grid::ThumbState as CombineThumb;
 mod combine_ui;
 pub use combine_ui::{Columns as CombineColumns, CombineView, Lock as CombineLock, SortKey};
