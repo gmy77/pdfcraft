@@ -3498,6 +3498,15 @@ fn refine_goto_point(mut scroll: egui::ScrollArea, view: &mut DocView, geometry:
     scroll
 }
 
+/// Whether the user agreed to send text to the translation service. A yes given in the popup of
+/// the tab at `index` becomes the app's setting here, so later popups translate at once.
+fn sync_translate_consent(app: &mut PdfCraftApp, index: usize) -> bool {
+    if app.views.get(index).and_then(|v| v.translation_popup.as_ref()).is_some_and(|p| p.consent_given) {
+        app.translate_consent = true;
+    }
+    app.translate_consent
+}
+
 /// Draws the document tab at `index`: its notice bars, then its pages (or the Organize grid) in a
 /// scroll area with this frame's zoom, scrolling, tool input, overlays and render requests.
 pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
@@ -3558,6 +3567,7 @@ pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
     let repaired = !doc.repair_log().is_empty();
     let notice = notices(view, doc, secured, repaired, crate::sign_ui::banner(&doc.signatures), ui, &t);
     apply_notice(app, index, notice);
+    let translate_consent = sync_translate_consent(app, index);
     let Some(doc) = app.session.get(app.views[index].id) else { return };
     let info = &doc.info;
     // No dialog, close prompt or palette over the page: only then does page input count.
@@ -3786,7 +3796,7 @@ pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
         copy_selected |= selection_actions(ui, avail, view, info, prefs, allowed && !comments_hidden, can_copy);
     }
     if let Some(popup) = &mut view.translation_popup
-        && !popup.show(ui, avail)
+        && !popup.show(ui, avail, translate_consent)
     {
         view.translation_popup = None;
     }

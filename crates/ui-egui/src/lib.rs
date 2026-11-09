@@ -312,6 +312,9 @@ pub struct PdfCraftApp {
     desktop_theme_enabled: bool,
     /// How far a mouse-wheel notch scrolls.
     pub scroll_speed: scroll_speed::ScrollSpeed,
+    /// The user agreed, in the translation popup, to send selected text to the translation
+    /// service. Off until then: nothing leaves the machine before the user has seen where it goes.
+    pub translate_consent: bool,
     /// Preferences ▸ Invert middle-button drag: the middle button's pan or auto-scroll moves the
     /// view the other way. Off by default.
     pub invert_middle_drag: bool,

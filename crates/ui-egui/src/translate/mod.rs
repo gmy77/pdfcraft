@@ -28,6 +28,8 @@ pub const POPULAR_LANGUAGES: &[(&str, &str)] = &[
 
 /// Current state of the translation operation.
 pub enum Status {
+    /// Nothing sent yet: the popup asks before the first text leaves the machine.
+    Consent,
     Loading,
     Success(String),
     Error(String),
@@ -43,26 +45,43 @@ pub struct TranslationPopup {
     pub status: Status,
     pub copied: bool,
     pub copied_at: f64,
+    /// The selection was longer than [`service::MAX_CHARS`] and only its start is translated.
+    pub truncated: bool,
+    /// The user agreed in this popup to send text to the translation service; the app keeps it.
+    pub consent_given: bool,
+    /// A request was sent at least once, so changing a language may send again.
+    started: bool,
     rx: Option<Receiver<service::TranslationResult>>,
 }
 
 impl TranslationPopup {
-    /// Create and automatically start translation for `text` anchored at `anchor`.
+    /// Create the popup for `text` anchored at `anchor`. Nothing is sent until [`Self::show`]
+    /// knows the user agreed to it. The page's line breaks are rejoined into paragraphs and the
+    /// text is capped at [`service::MAX_CHARS`].
     pub fn new(text: String, anchor: Pos2) -> Self {
         let target_lang = default_target_lang();
-        let mut popup = Self {
+        let (text, truncated) = service::cap(&service::unwrap_lines(&text), service::MAX_CHARS);
+        Self {
             original_text: text,
             anchor,
             source_lang: "auto".to_string(),
             target_lang,
             detected_lang: None,
-            status: Status::Loading,
+            status: Status::Consent,
             copied: false,
             copied_at: 0.0,
+            truncated,
+            consent_given: false,
+            started: false,
             rx: None,
-        };
-        popup.start_translation();
-        popup
+        }
+    }
+
+    /// Translate again after a language change or a retry, but only once the user has agreed.
+    fn request(&mut self) {
+        if self.started {
+            self.start_translation();
+        }
     }
 
     /// Trigger an asynchronous translation request on a background thread.
@@ -74,6 +93,7 @@ impl TranslationPopup {
 
         self.status = Status::Loading;
         self.copied = false;
+        self.started = true;
         self.rx = Some(rx);
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -89,8 +109,14 @@ impl TranslationPopup {
         }
     }
 
-    /// Render the floating pop-up. Returns `false` when the user closes or dismisses the popup.
-    pub fn show(&mut self, ui: &mut Ui, viewport: Rect) -> bool {
+    /// Render the floating pop-up. `consented` says the user already agreed, in an earlier popup,
+    /// to send text to the translation service. Returns `false` when the user closes or dismisses
+    /// the popup.
+    pub fn show(&mut self, ui: &mut Ui, viewport: Rect, consented: bool) -> bool {
+        if !self.started && consented {
+            self.start_translation();
+        }
+
         // Poll for asynchronous result from background worker
         if let Some(rx) = &self.rx
             && let Ok(res) = rx.try_recv()
@@ -144,7 +170,7 @@ impl TranslationPopup {
                             for &(code, name) in POPULAR_LANGUAGES {
                                 if ui.selectable_label(self.target_lang == code, name).clicked() && self.target_lang != code {
                                     self.target_lang = code.to_string();
-                                    self.start_translation();
+                                    self.request();
                                 }
                             }
                         });
@@ -165,13 +191,13 @@ impl TranslationPopup {
                         egui::ComboBox::from_id_salt("source_lang_combo").selected_text(source_label).width(105.0).show_ui(ui, |ui| {
                             if ui.selectable_label(self.source_lang == "auto", tl!("Auto Detect")).clicked() && self.source_lang != "auto" {
                                 self.source_lang = "auto".to_string();
-                                self.start_translation();
+                                self.request();
                             }
                             ui.separator();
                             for &(code, name) in POPULAR_LANGUAGES {
                                 if ui.selectable_label(self.source_lang == code, name).clicked() && self.source_lang != code {
                                     self.source_lang = code.to_string();
-                                    self.start_translation();
+                                    self.request();
                                 }
                             }
                         });
@@ -186,6 +212,9 @@ impl TranslationPopup {
                 ScrollArea::vertical().id_salt("orig_scroll").max_height(60.0).show(ui, |ui| {
                     ui.label(RichText::new(&self.original_text).size(12.0).weak());
                 });
+                if self.truncated {
+                    ui.label(RichText::new(tl!("Only the start of the selection is translated.")).size(11.0).weak());
+                }
 
                 ui.add_space(4.0);
                 ui.separator();
@@ -193,6 +222,22 @@ impl TranslationPopup {
 
                 // --- Translation Result Section ---
                 match &self.status {
+                    Status::Consent => {
+                        ui.label(
+                            RichText::new(tl!("The selected text will be sent to Google Translate (translate.googleapis.com) to be translated."))
+                                .size(12.5),
+                        );
+                        ui.add_space(6.0);
+                        ui.horizontal(|ui| {
+                            if ui.button(tl!("Translate")).clicked() {
+                                self.consent_given = true;
+                                self.start_translation();
+                            }
+                            if ui.button(tl!("Cancel")).clicked() {
+                                keep_open = false;
+                            }
+                        });
+                    }
                     Status::Loading => {
                         ui.horizontal(|ui| {
                             ui.spinner();
@@ -229,7 +274,7 @@ impl TranslationPopup {
                         ui.label(RichText::new(err).color(ui.visuals().error_fg_color).size(12.0));
                         ui.add_space(4.0);
                         if ui.button(tl!("Retry")).clicked() {
-                            self.start_translation();
+                            self.request();
                         }
                     }
                 }
